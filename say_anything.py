@@ -63,7 +63,7 @@ class Game:
             print("Starting first round")
             await self.start_round()
 
-    async def start_round(self):
+    async def start_round(self) -> None:
         if self.question_setter:
             return
 
@@ -175,7 +175,7 @@ class Game:
         )
 
         if not message:
-            print(f"Got emote from not on a vote message")
+            print("Got emote from not on a vote message")
             return
 
         vote_for = self.vote_messages[message]
@@ -191,7 +191,7 @@ class Game:
                 print(f"Player {voter.name} has not finished voting")
                 return
 
-        print(f"All players have voted")
+        print("All players have voted")
 
         await self.channel.send(
             (
@@ -199,7 +199,7 @@ class Game:
                 f"This answer was given by {self.correct_answer.name}"
             )
         )
-        
+
         self.question_setter = None
         await self.channel.send(
             (
@@ -275,18 +275,17 @@ class Game:
 
 
 class DiscordBot(discord.Client):
-    games: List[Game]
-
-    def __init__(self, **options):
-        discord.Client.__init__(self, **options)
-
-        self.games = []
+    games: List[Game] = []
 
     async def on_ready(self) -> None:
         print(f"{self.user} has connected to Discord!")
 
     async def on_message(self, message: discord.Message) -> None:
         if message.author == self.user:
+            return
+
+        if message.content.startswith("!startgame "):
+            self.start_game(message)
             return
 
         if message.content.startswith("!endgame"):
@@ -296,39 +295,16 @@ class DiscordBot(discord.Client):
                     await game.channel.send("Thanks for Playing!")
                     return
 
-        if message.content.startswith("!startgame "):
-            if not isinstance(message.channel, discord.TextChannel):
-                print("Attempting to start game in non-text channel")
-                return
-
-            for game in self.games:
-                if message.channel == game.channel:
-                    await game.channel.send("Can't start game -- game already exists")
-                    return
-
-            game = Game(message.channel)
-            self.games.append(game)
-            print(
-                f"Starting new game in {message.channel.name} with {message.mentions}"
-            )
-            await game.add_players(message.mentions)
-
+        for game in [game for game in self.games if message.channel == game.channel]:
+            await game.handle_channel_message(message)
             return
-
-        for game in self.games:
-            if message.channel == game.channel:
-                await game.handle_channel_message(message)
-
-                return
 
         if isinstance(message.channel, discord.DMChannel):
             user = message.channel.recipient
 
-            for game in self.games:
-                if user in game.players:
-                    await game.handle_player_message(message)
-
-                    return
+            for game in [game for game in self.games if user in game.players]:
+                await game.handle_player_message(message)
+                return
 
     async def on_raw_reaction_add(self, event: discord.RawReactionActionEvent) -> None:
         if event.user_id == self.user.id:
@@ -339,6 +315,23 @@ class DiscordBot(discord.Client):
                 await game.handle_reaction(event)
 
                 return
+
+    async def start_game(self, message: discord.Message) -> None:
+        if not isinstance(message.channel, discord.TextChannel):
+            print("Attempting to start game in non-text channel")
+            return
+
+        for game in self.games:
+            if message.channel == game.channel:
+                await game.channel.send("Can't start game -- game already exists")
+                return
+
+        game = Game(message.channel)
+        self.games.append(game)
+
+        print(f"Starting new game in {message.channel.name} with {message.mentions}")
+
+        await game.add_players(message.mentions)
 
 
 if __name__ == "__main__":
