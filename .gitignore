@@ -1,0 +1,7 @@
+/*.token
+/list.txt
+/list.db
+/.mypy_cache
+/.local
+/.cache
+__pycache__
