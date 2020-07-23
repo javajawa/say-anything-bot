@@ -18,6 +18,13 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    - name: Checkout Discord Stubs
+      uses: actions/checkout@v2
+      with:
+        repository: "bryanforbes/discord.py"
+        ref:  "typings"
+        path: "discord.stub"
+
     - name: Setup Python 3.7
       uses: actions/setup-python@v1
       with:
@@ -31,9 +38,12 @@ jobs:
 
     - name: Run Linters
       uses: samuelmeuli/lint-action@v1
+      env:
+        MYPYPATH: "$GITHUB_WORKSPACE/discord.stub"
       with:
         github_token: ${{ secrets.github_token }}
 
         black:  true
         flake8: true
         mypy:   true
+        mypy_flags: --strict
