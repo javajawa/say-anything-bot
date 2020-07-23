@@ -39,7 +39,7 @@ jobs:
     - name: Run Linters
       uses: samuelmeuli/lint-action@v1
       env:
-        MYPYPATH: "$GITHUB_WORKSPACE/discord.stub"
+        MYPYPATH: "discord.stub"
       with:
         github_token: ${{ secrets.github_token }}
 
